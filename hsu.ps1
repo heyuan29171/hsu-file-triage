@@ -5,8 +5,8 @@
   press one key, and it files it away into a category folder and
   opens the next one.
 
-  Put this script (and triage.cmd) in the folder that directly holds
-  the items, then double-click triage.cmd.
+  Put this script (and hsu.cmd) in the folder that directly holds
+  the items, then double-click hsu.cmd.
 
   Keys:
     1 / 2 / 3 ...   assign to category 1 / 2 / 3 ...
@@ -37,8 +37,8 @@ try { chcp 65001 > $null } catch {}
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
 $root = if ($Path) { (Resolve-Path -LiteralPath $Path).Path } elseif ($PSCommandPath) { Split-Path -Parent $PSCommandPath } else { (Get-Location).Path }
-$statePath = Join-Path $root '_triage_state.json'
-$logPath = Join-Path $root '_triage_log.csv'
+$statePath = Join-Path $root '_hsu_state.json'
+$logPath = Join-Path $root '_hsu_log.csv'
 
 $extList = @()
 if (-not $Any) {
@@ -50,7 +50,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
-public class TriageUi {
+public class HsuUi {
   [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc cb, IntPtr l);
   delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
   [DllImport("user32.dll")] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
@@ -150,9 +150,9 @@ function Get-AncestorPids {
 
 function Get-ConsoleHwnd {
     if (-not $script:consoleOk) { return [IntPtr]::Zero }
-    $h = [TriageUi]::GetConsoleWindow()
+    $h = [HsuUi]::GetConsoleWindow()
     if ($h -eq [IntPtr]::Zero) { return [IntPtr]::Zero }
-    $root2 = [TriageUi]::GetAncestor($h, 2)
+    $root2 = [HsuUi]::GetAncestor($h, 2)
     if ($root2 -ne [IntPtr]::Zero) { return $root2 }
     return $h
 }
@@ -166,20 +166,20 @@ function Set-ConsoleLayout {
         [Console]::WindowHeight = 22
     } catch { }
     $wa = Get-Screen
-    [TriageUi]::Pin($h, $wa.Left + 12, $wa.Top + 12) | Out-Null
+    [HsuUi]::Pin($h, $wa.Left + 12, $wa.Top + 12) | Out-Null
 }
 
 function Focus-Console {
     $h = Get-ConsoleHwnd
     if ($h -eq [IntPtr]::Zero) { return }
-    [TriageUi]::Front($h)
+    [HsuUi]::Front($h)
     $wa = Get-Screen
-    [TriageUi]::Pin($h, $wa.Left + 12, $wa.Top + 12) | Out-Null
+    [HsuUi]::Pin($h, $wa.Left + 12, $wa.Top + 12) | Out-Null
 }
 
 function Get-WindowMap {
     $map = @{}
-    foreach ($w in [TriageUi]::Windows()) {
+    foreach ($w in [HsuUi]::Windows()) {
         $p = $w.Split('|')
         if ($p.Length -lt 4) { continue }
         $map[[IntPtr][long]$p[0]] = @{ Pid = [int]$p[1]; Cls = $p[2]; Title = $p[3] }
@@ -191,7 +191,7 @@ function Place-Viewer([IntPtr]$h) {
     $wa = Get-Screen
     $cw = 0
     $ch = Get-ConsoleHwnd
-    if ($ch -ne [IntPtr]::Zero) { $cw = [TriageUi]::WidthOf($ch) }
+    if ($ch -ne [IntPtr]::Zero) { $cw = [HsuUi]::WidthOf($ch) }
     if ($cw -le 200) { $cw = 780 }
     $x = $wa.Left + $cw + 28
     $w = $wa.Right - $x - 16
@@ -200,7 +200,7 @@ function Place-Viewer([IntPtr]$h) {
         $w = $wa.Right - $x - 16
     }
     $hgt = $wa.Height - 48
-    [TriageUi]::Place($h, $x, $wa.Top + 12, $w, $hgt, $false)
+    [HsuUi]::Place($h, $x, $wa.Top + 12, $w, $hgt, $false)
 }
 
 # ---------------------------------------------------------------- open / close
@@ -243,7 +243,7 @@ function Open-Item([string]$file) {
     $target = $file
     $ext = [System.IO.Path]::GetExtension($file).ToLowerInvariant()
     if ($ext -eq '.potx' -or $ext -eq '.potm' -or $ext -eq '.pot') {
-        $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) 'triage_tmp'
+        $tmpDir = Join-Path ([System.IO.Path]::GetTempPath()) 'hsu_tmp'
         if (-not (Test-Path -LiteralPath $tmpDir)) { New-Item -ItemType Directory -Path $tmpDir | Out-Null }
         $newExt = if ($ext -eq '.potm') { '.pptm' } elseif ($ext -eq '.pot') { '.ppt' } else { '.pptx' }
         $candidate = Join-Path $tmpDir ([System.IO.Path]::GetFileNameWithoutExtension($file) + $newExt)
@@ -266,7 +266,7 @@ function Open-Item([string]$file) {
             if ($info.Pid -eq $PID) { continue }
             if ($info.Cls -in @('#32770', 'NUIDialog', 'tooltips_class32', 'TaskListThumbnailWnd')) { continue }
             Place-Viewer $k
-            [TriageUi]::Front($k)
+            [HsuUi]::Front($k)
             Start-Sleep -Milliseconds 350
             Focus-Console
             return $k
@@ -277,13 +277,13 @@ function Open-Item([string]$file) {
 }
 
 function Close-Item([IntPtr]$h) {
-    if ($h -ne [IntPtr]::Zero -and [TriageUi]::IsWindow($h)) {
+    if ($h -ne [IntPtr]::Zero -and [HsuUi]::IsWindow($h)) {
         for ($i = 0; $i -lt 12; $i++) {
-            [TriageUi]::PostMessage($h, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+            [HsuUi]::PostMessage($h, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
             Start-Sleep -Milliseconds 500
-            if (-not [TriageUi]::IsWindow($h)) { return }
+            if (-not [HsuUi]::IsWindow($h)) { return }
         }
-        $pid2 = [TriageUi]::PidOf($h)
+        $pid2 = [HsuUi]::PidOf($h)
         if ($pid2 -gt 0) { try { (Get-Process -Id $pid2 -ErrorAction Stop).Kill() } catch { } }
         Start-Sleep -Milliseconds 800
     }
@@ -330,13 +330,13 @@ function Ensure-Released([string]$file) {
 
 function Close-StrayDialogs {
     $consoleHwnd = Get-ConsoleHwnd
-    foreach ($w in [TriageUi]::Windows()) {
+    foreach ($w in [HsuUi]::Windows()) {
         $p = $w.Split('|')
         if ($p.Length -lt 4) { continue }
         $h = [IntPtr][long]$p[0]
         if ($h -eq $consoleHwnd) { continue }
         if ($p[2] -in @('#32770', 'NUIDialog')) {
-            [TriageUi]::PostMessage($h, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+            [HsuUi]::PostMessage($h, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
         }
     }
 }
@@ -597,7 +597,7 @@ $state = Sync-State
 $total = @($state.Items).Count
 
 Write-Host ""
-Write-Host "=== Folder Triage ===" -ForegroundColor Cyan
+Write-Host "=== HSU · 文件批量分拣 ===" -ForegroundColor Cyan
 Write-Host "目录：$root"
 Write-Host "待处理 $total 项，从第 $($state.Current) 项开始"
 Write-Host ("分类：" + ($Categories -join ' / '))
@@ -644,7 +644,7 @@ while ($true) {
     $handle = Open-Item $item.File
     if ($handle -ne [IntPtr]::Zero) {
         $script:openedHandles += $handle
-        $script:openedPids += [TriageUi]::PidOf($handle)
+        $script:openedPids += [HsuUi]::PidOf($handle)
     } else {
         Write-Host "        !! 没检测到新窗口，可能已经用别的方式打开了" -ForegroundColor Yellow
     }
@@ -713,4 +713,4 @@ while ($true) {
 Write-Host ""
 Write-Host "结果："
 foreach ($c in $Categories) { Write-Host ("  {0}\{1} 项" -f $c, (Count-Bucket $c)) }
-Write-Host "日志：_triage_log.csv   进度：_triage_state.json"
+Write-Host "日志：_hsu_log.csv   进度：_hsu_state.json"

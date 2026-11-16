@@ -1,116 +1,115 @@
-# Folder Triage
+﻿# HSU · File Triage
 
-**Open a folder full of files, look at them one by one, press one key, and they file themselves away.**
+> **HSU = help student union.**
+> 一个极小的、零依赖的 Windows 工具：让「一堆文件逐个过目 → 归类」这件事只花你敲键盘的时间。
 
-Folder Triage is a tiny, dependency-free Windows tool for the boring part of any review job: opening dozens (or hundreds) of documents one at a time, deciding where each one belongs, closing it, and dragging it into the right folder. This tool does the opening, closing and moving for you — you only look and press `1`, `2` or `3`.
+把一个装满作品的文件夹交给它，它逐个用**系统默认程序**打开，你看完敲一个键，它自动关掉、把该条目移进对应分类文件夹，再打开下一个。
 
-It is **human-in-the-loop by design**: no AI, no cloud, no uploading your files anywhere. It just drives the applications you already have installed.
+它是 **human-in-the-loop**：不联网、不上传、不调 AI，只负责开关窗口和移动文件，判断永远由你来做。
 
 ```
-┌──────────────── 你在这里看/敲键 ────────────────┐   ┌──────── 自动打开的作品 ────────┐
-│ [3/87] 校园PPT模板设计大赛+学术科创组+222      │   │                                │
-│        文件：作品.pptx   12 页 / 4.3 MB        │   │         (in your default app)  │
-│        本次：好 1  中 1  坏 0                   │   │                                │
-│                                                │   │                                │
-│        分类 _                                   │   │                                │
-└────────────────────────────────────────────────┘   └────────────────────────────────┘
+┌───────────── 你在这里看 / 敲键 ─────────────┐   ┌────── 自动打开的作品 ──────┐
+│ [3/87] 校园PPT模板设计大赛+学术科创组+222     │   │                            │
+│        文件：作品.pptx   12 页 / 4.3 MB      │   │   （用你机器上关联的程序）   │
+│        本次：好 1  中 1  坏 0                │   │                            │
+│                                              │   │                            │
+│        分类 _                                 │   │                            │
+└──────────────────────────────────────────────┘   └────────────────────────────┘
 ```
 
 ---
 
-## What it is good for
+## 它适合干什么
 
-Any task that is "same action, many items":
+所有「同一个动作，重复很多遍」的场景：
 
-| Scenario | Categories |
+| 场景 | 分类示例 |
 |---|---|
 | 参赛作品 / 投稿初评 | 好 / 中 / 坏 |
 | 照片分选、素材归档 | 留 / 修 / 删 |
 | 报销单据、合同整理 | 已核 / 待补 / 作废 |
 | 简历初筛 | 面试 / 待定 / 不合适 |
-| 收集的 PDF、PPT 分类 | any N buckets |
+| 收集的 PDF、PPT 分类 | 任意 N 个分类 |
 
-The category names are configurable, and the count of categories is arbitrary (`1..9`).
+分类名和分类数量都可以改，支持 `1..9`。
 
-## Features
+## 特点
 
-- **Works with any file type and any viewer** — it just launches the file with its default application and tracks the window that appears. PowerPoint, WPS, LibreOffice, Acrobat, Photos, a video player: whatever Windows uses.
-- **One keystroke per item** — `1/2/3…` assigns a category, then the item is moved and the next one opens.
-- **Preview mode** — optionally opens a random 1/3 of the items first, so you build a consistent standard before you start judging.
-- **Resume anywhere** — progress lives in `_triage_state.json`; quit at any time and rerun.
-- **Undo** — `triage.cmd -Undo` moves everything back, in reverse order.
-- **Safe moves** — atomic directory/file renames, name-collision handling, retries while a viewer still holds the file, and no silent failures.
-- **CSV log** — `_triage_log.csv` (time, name, verdict, note), opens straight in Excel.
-- **No install** — a single PowerShell script + a `.cmd` launcher. Uses the Windows built-in PowerShell 5.1 if PowerShell 7 is absent.
+- **任意文件类型、任意查看器** —— 用系统默认关联程序打开，Word / PPT / WPS / LibreOffice / Acrobat / 看图 / 播放器都行，不绑定 Office。
+- **一个键一份** —— `1/2/3…` 直接归档，然后自动打开下一份。
+- **预览校准** —— 启动时可先随机抽 1/3 纯看一遍，先把「好/中/坏」的尺度立起来。
+- **断点续评** —— 进度在 `_hsu_state.json`，随时 `q` 退出，下次接着来。
+- **可撤销** —— `-Undo` 把上一轮的移动按相反顺序挪回去。
+- **安全移动** —— 原子重命名、查看器占用自动重试、同名自动加序号、失败明确报错。
+- **明细日志** —— `_hsu_log.csv`（时间 / 名称 / 分类 / 备注），Excel 直接打开。
+- **零安装** —— 一个 `.ps1` + 一个 `.cmd`；有 PowerShell 7 就用 7，没有用系统自带 5.1。
 
-## Quick start
+## 快速开始
 
-1. Download and unzip the [latest release](../../releases/latest).
-2. Drop `triage.ps1` and `triage.cmd` into the folder that **directly contains** the items:
+1. 下载 [最新发布](../../releases/latest) 并解压。
+2. 把 `hsu.ps1` 和 `hsu.cmd` 放进**直接装着各个条目**的目录：
 
 ```
 D:\review\
-  ├─ team-111\          ← each folder is one item (its largest matching file is opened)
+  ├─ team-111\           ← 每个文件夹算一个条目（打开其中最大的匹配文件）
   ├─ team-222\
-  ├─ loose-deck.pptx    ← loose files work too
-  ├─ triage.cmd
-  └─ triage.ps1
+  ├─ loose-deck.pptx     ← 散装文件也支持
+  ├─ hsu.cmd
+  └─ hsu.ps1
 ```
 
-3. Double-click `triage.cmd`.
+3. 双击 `hsu.cmd`。
 
-It asks once whether to preview a random 1/3 first, then starts.
+启动会先问一句：要不要随机预览 1/3 找找感觉？然后进入正式分拣。
 
-## Keys
+## 按键
 
-| Key | Action |
+| 按键 | 作用 |
 |---|---|
-| `1` `2` `3` … | put the item into category N |
-| `Enter` | put the item into category 1 |
-| `s` | skip (leave in place, just log it) |
-| `r` | reopen the current item |
-| `o` | reveal the current item in Explorer |
-| `k` | reset: force-close the viewer and reopen the item |
-| `q` | quit (progress is saved) |
+| `1` `2` `3` … | 归入第 N 类 |
+| `Enter` | 归入第 1 类 |
+| `s` | 跳过（不移动，只记一笔） |
+| `r` | 重开当前条目 |
+| `o` | 在资源管理器中定位当前条目 |
+| `k` | 重置：强制关掉查看器并重开当前条目 |
+| `q` | 退出（进度已保存） |
 
-## Options
+## 参数
 
 ```powershell
-triage.cmd                                  # normal run
-triage.cmd -NoPreview                       # skip the preview question
-triage.cmd -Start 12                        # resume at item 12
-triage.cmd -Categories 留,修,删              # custom category names
-triage.cmd -Any                             # accept every file type
-triage.cmd -Exts pdf,docx,pptx              # restrict file types
-triage.cmd -Undo                            # undo the last run's moves
-triage.cmd -Path D:\other\folder            # run against another folder
+hsu.cmd                       # 常规运行
+hsu.cmd -NoPreview            # 跳过预览询问
+hsu.cmd -Start 12             # 从第 12 项开始
+hsu.cmd -Categories 留,修,删   # 自定义分类名（数量随意）
+hsu.cmd -Any                  # 不限文件类型
+hsu.cmd -Exts pdf,docx,pptx   # 只认这些扩展名
+hsu.cmd -Undo                 # 撤销上一轮的移动
+hsu.cmd -Path D:\other\dir    # 处理另一个目录
 ```
 
-## Generated files
+## 生成的文件
 
-| File | Meaning |
+| 文件 | 说明 |
 |---|---|
-| `好\` `中\` `坏\` | category folders, created on first use |
-| `_triage_state.json` | progress; delete it to start over |
-| `_triage_log.csv` | per-item log |
+| `好\ 中\ 坏\` | 分类目录，第一次用到时自动创建 |
+| `_hsu_state.json` | 进度；删掉即从头开始 |
+| `_hsu_log.csv` | 逐条明细 |
 
-Folders and files starting with `_` (and the category folders themselves) are ignored when scanning.
+以 `_` 开头的文件夹/文件、以及分类目录本身，扫描时会被忽略。
 
-## Notes and limitations
+## 说明与限制
 
-- Windows only. The layout helper is optional (`-PinConsole`); by default the script never touches the terminal window it runs in.
-- Items are considered to be the **direct children** of the working folder: a subfolder is one item, and the largest matching file inside is what gets opened.
-- Files that are still held open by a viewer are retried; if the move still fails it is reported instead of silently skipping.
-- The console is only pinned/shrunk when started through `triage.cmd` and only the console that belongs to this process — never another window.
+- 仅 Windows。
+- 条目 = 工作目录的**直接子项**：一个子文件夹算一条（打开其中最大的匹配文件），一个散装文件也算一条。
+- 查看器占用文件时会重试；仍失败会**明确报错并要求重选**，不会静默跳过或留下半截目录。
+- 默认不会改动任何终端窗口；只有通过 `hsu.cmd` 启动、且窗口属于本进程时才会把脚本窗口固定到左侧。重定向运行时完全不碰窗口。
 
-## 中文速览
+## 与其他工具的关系
 
-把一个装满作品的文件夹交给它，它逐个用默认程序打开，你看完敲 `1/2/3`，它自动关掉、把该文件夹（或文件）挪进对应分类，再打开下一个。不联网、不装环境、不改原文件内容。
-
-- 分类名可改、数量可改（`-Categories 好,中,坏`）
-- 启动可先随机预览 1/3，帮助建立统一标准
-- 断点续评、可撤销（`-Undo`）、有 CSV 明细
-- 支持任意文件类型：PPT/PDF/Word/图片/视频都行
+同类项目多是「按扩展名自动整理」（file-organizer、SmartSort 一类）或「AI 猜分类」（SlothSort 一类），
+真正像 HSU 这样**逐个人工过目、用真实程序打开、一条命令归档**的很少：`sortof`（macOS 终端）、
+`declutter`（Tauri 桌面 App，偏图片/文本预览）。HSU 的差异点是：Windows + 零安装 +
+用你本机真实的查看器（PPT 动画、字体、排版都能看到）+ 以「文件夹」为评审单位。
 
 ## License
 
