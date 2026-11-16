@@ -1,0 +1,10 @@
+# progress / logs
+_triage_state.json
+_triage_log.csv
+_pipelog.txt
+*.zip
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
